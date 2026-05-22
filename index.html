@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAA-C03 Study Tracker</title>
+<!-- Marked.js for markdown rendering -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f5;color:#111;padding:20px;min-height:100vh}
+h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.subtitle{font-size:13px;color:#666;margin-bottom:20px}
+
+/* Setup card */
+.setup-card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:16px;margin-bottom:16px}
+.setup-title{font-size:13px;font-weight:600;margin-bottom:12px}
+.fields-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+@media(max-width:600px){.fields-row{grid-template-columns:1fr}}
+.field-group{display:flex;flex-direction:column;gap:4px}
+.field-label{font-size:11px;font-weight:500;color:#555}
+input[type=text],input[type=password]{padding:8px 10px;font-size:12px;border:1px solid #ddd;border-radius:8px;background:#fafafa;color:#111;width:100%;outline:none}
+input[type=text]:focus,input[type=password]:focus{border-color:#0a7c5c;background:#fff}
+.btn-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn{padding:8px 18px;font-size:12px;font-weight:500;border-radius:8px;border:1px solid #ddd;background:#fff;color:#111;cursor:pointer}
+.btn:hover{background:#f5f5f5}
+.btn-primary{background:#0a7c5c;color:#fff;border-color:#0a7c5c}
+.btn-primary:hover{background:#085041}
+.btn-notes{background:#1a6fbd;color:#fff;border-color:#1a6fbd;padding:4px 10px;font-size:11px;border-radius:6px;white-space:nowrap}
+.btn-notes:hover{background:#155a99}
+.btn-notes.no-notes{background:#e0e0e0;color:#999;border-color:#e0e0e0;cursor:not-allowed}
+.status{font-size:11px;padding:4px 10px;border-radius:8px;display:none}
+.status.ok{background:#e0f5ee;color:#085041;display:inline-block}
+.status.err{background:#fde8e8;color:#9b1c1c;display:inline-block}
+.status.loading{background:#f0f0f0;color:#555;display:inline-block}
+.token-note{margin-top:10px;font-size:11px;color:#888;line-height:1.6}
+
+/* Summary */
+.summary-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.stat{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:10px 16px;font-size:12px;color:#666;min-width:90px}
+.stat b{display:block;font-size:20px;font-weight:600;color:#111;line-height:1.2}
+
+/* Week cards */
+.week-card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;margin-bottom:10px;overflow:hidden}
+.week-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;border-bottom:1px solid #f0f0f0;user-select:none}
+.week-header:hover{background:#fafafa}
+.week-left{display:flex;align-items:center;gap:10px}
+.week-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+.week-title{font-size:13px;font-weight:500}
+.progress-wrap{display:flex;align-items:center;gap:8px}
+.progress-bar{width:90px;height:5px;background:#eee;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.3s}
+.progress-text{font-size:11px;color:#888;min-width:30px;text-align:right}
+.chevron{font-size:13px;color:#aaa;transition:transform 0.2s;margin-left:4px}
+.chevron.open{transform:rotate(180deg)}
+.week-body{display:none}
+.week-body.open{display:block}
+
+/* Day rows */
+.day-row{display:grid;grid-template-columns:28px 55px 95px 1fr auto;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid #f5f5f5;transition:background 0.15s}
+.day-row:last-of-type{border-bottom:none}
+.day-row.done{background:#f0faf5}
+.cb{width:16px;height:16px;cursor:pointer;accent-color:#0a7c5c;flex-shrink:0}
+.day-label{font-size:11px;font-weight:500;color:#888}
+.sec-tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap;display:inline-block}
+.topic{font-size:12px;color:#111}
+.action-col{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+
+/* Milestone */
+.milestone-row{display:flex;align-items:center;gap:6px;padding:9px 16px;background:#f8fffe;border-top:1px solid #e0f5ee;font-size:11px;font-weight:500;color:#0a7c5c}
+
+/* Save indicator */
+.save-indicator{text-align:center;font-size:11px;color:#0a7c5c;padding:6px;display:none}
+.save-indicator.show{display:block}
+.save-indicator.error{color:#b02a10}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:760px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #eee;flex-shrink:0}
+.modal-title{font-size:15px;font-weight:600;color:#111}
+.modal-meta{font-size:11px;color:#888;margin-top:2px}
+.modal-close{width:30px;height:30px;border-radius:8px;border:1px solid #eee;background:#f5f5f5;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:#555;flex-shrink:0}
+.modal-close:hover{background:#eee}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-loading{text-align:center;padding:40px;color:#888;font-size:13px}
+.modal-empty{text-align:center;padding:40px}
+.modal-empty p{color:#888;font-size:13px;margin-bottom:8px}
+.modal-empty a{font-size:12px;color:#1a6fbd;text-decoration:none}
+
+/* Rendered markdown styles */
+.md-content h1{font-size:20px;font-weight:700;margin:0 0 16px;color:#111;border-bottom:2px solid #f0f0f0;padding-bottom:10px}
+.md-content h2{font-size:15px;font-weight:600;margin:20px 0 8px;color:#111}
+.md-content h3{font-size:13px;font-weight:600;margin:16px 0 6px;color:#333}
+.md-content p{font-size:13px;line-height:1.7;color:#333;margin-bottom:10px}
+.md-content ul,.md-content ol{padding-left:20px;margin-bottom:10px}
+.md-content li{font-size:13px;line-height:1.8;color:#333}
+.md-content table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
+.md-content th{background:#f5f5f5;padding:8px 10px;text-align:left;font-weight:600;border:1px solid #e0e0e0;color:#333}
+.md-content td{padding:8px 10px;border:1px solid #e0e0e0;color:#444;vertical-align:top}
+.md-content tr:nth-child(even) td{background:#fafafa}
+.md-content blockquote{border-left:3px solid #0a7c5c;padding:8px 14px;background:#f0faf5;border-radius:0 8px 8px 0;margin:12px 0}
+.md-content blockquote p{color:#085041;font-style:italic;margin:0}
+.md-content code{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px;color:#c7254e}
+.md-content pre{background:#1e1e1e;padding:14px;border-radius:8px;overflow-x:auto;margin:10px 0}
+.md-content pre code{background:none;color:#d4d4d4;padding:0;font-size:12px}
+.md-content hr{border:none;border-top:1px solid #eee;margin:16px 0}
+.md-content input[type=checkbox]{margin-right:6px;accent-color:#0a7c5c}
+.md-content strong{font-weight:600;color:#111}
+</style>
+</head>
+<body>
+
+<h1>☁️ AWS SAA-C03 Study Tracker</h1>
+<p class="subtitle">Stephane Maarek · Sections 4–31 · 8 Weeks · 41 Days · Synced to GitHub</p>
+
+<!-- GitHub Setup -->
+<div class="setup-card">
+  <div class="setup-title">🔗 GitHub sync — connect to save your progress</div>
+  <div class="fields-row">
+    <div class="field-group">
+      <span class="field-label">GitHub username</span>
+      <input type="text" id="gh-user" placeholder="e.g. pavankumar-5999">
+    </div>
+    <div class="field-group">
+      <span class="field-label">Repo name</span>
+      <input type="text" id="gh-repo" placeholder="e.g. aws-saa-c03-jouney">
+    </div>
+    <div class="field-group">
+      <span class="field-label">Personal Access Token (repo scope)</span>
+      <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="connectGitHub()">⚡ Connect</button>
+    <span id="conn-status" class="status"></span>
+  </div>
+  <p class="token-note">🔒 Token stored only in your browser. Sent only to GitHub's official API. Notes are public — no token needed to view them.</p>
+</div>
+
+<!-- Summary -->
+<div class="summary-bar">
+  <div class="stat"><b id="total-done">0</b>days done</div>
+  <div class="stat"><b id="total-left">41</b>days left</div>
+  <div class="stat"><b id="overall-pct">0%</b>overall progress</div>
+</div>
+
+<div id="tracker"></div>
+<div class="save-indicator" id="save-ind"></div>
+
+<!-- ── MODAL ── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title">Day Notes</div>
+        <div class="modal-meta" id="modal-meta"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────────────
+const weeks = [
+  {label:"Week 1",badge:"Sections 4–8",color:"#1a6fbd",bg:"#e8f2fb",days:[
+    {d:"Day 01",sec:"S4",    topic:"IAM & AWS CLI",                              file:"Day01.md",action:"Watch + take notes"},
+    {d:"Day 02",sec:"S5",    topic:"EC2 Fundamentals",                           file:"Day02.md",action:"Watch + practice"},
+    {d:"Day 03",sec:"S6",    topic:"EC2 Storage — EBS & EFS",                   file:"Day03.md",action:"Watch + summarise"},
+    {d:"Day 04",sec:"S7",    topic:"ELB & Auto Scaling",                         file:"Day04.md",action:"Watch + discuss"},
+    {d:"Day 05",sec:"S8",    topic:"RDS, Aurora & ElastiCache",                  file:"Day05.md",action:"Watch + exercises"},
+    {d:"Day 06",sec:"Rev",   topic:"Revise Sections 4–8",                        file:"Day06.md",action:"Quizzes + review notes"},
+  ],milestone:"Section quizzes done · week-01 md files committed to GitHub"},
+
+  {label:"Week 2",badge:"Sections 9–13",color:"#0a7c5c",bg:"#e0f5ee",days:[
+    {d:"Day 07",sec:"S9",    topic:"Route 53",                                   file:"Day07.md",action:"Watch + note doubts"},
+    {d:"Day 08",sec:"S10",   topic:"Classic Solutions Architecture",              file:"Day08.md",action:"Watch + draw diagrams"},
+    {d:"Day 09",sec:"S11",   topic:"Amazon S3",                                  file:"Day09.md",action:"Watch + detailed notes"},
+    {d:"Day 10",sec:"S12",   topic:"S3 Advanced & Security",                     file:"Day10.md",action:"Watch + discuss"},
+    {d:"Day 11",sec:"S13",   topic:"CloudFront & Global Accelerator",            file:"Day11.md",action:"Watch + summarise"},
+    {d:"Day 12",sec:"Rev",   topic:"Revise Sections 9–13 + Jon Bonso Exam 1",   file:"Day12.md",action:"Quizzes + review notes"},
+  ],milestone:"Jon Bonso Exam 1 (65 Qs) — aim 60%+"},
+
+  {label:"Week 3",badge:"Sections 14–18",color:"#7c3fbd",bg:"#f0ebfc",days:[
+    {d:"Day 13",sec:"S14–15",topic:"Storage Extras + SQS & SNS",                file:"Day13.md",action:"Watch + implement"},
+    {d:"Day 14",sec:"S14–15",topic:"Kinesis & Amazon MQ",                        file:"Day14.md",action:"Watch + implement"},
+    {d:"Day 15",sec:"S16",   topic:"Containers — ECS, EKS & Fargate",           file:"Day15.md",action:"Watch + quizzes"},
+    {d:"Day 16",sec:"S17",   topic:"Serverless — Lambda, DynamoDB & API GW",    file:"Day16.md",action:"Watch + summarise"},
+    {d:"Day 17",sec:"S18",   topic:"Serverless Architecture Discussions",        file:"Day17.md",action:"Watch + review"},
+    {d:"Day 18",sec:"Rev",   topic:"Revise Sections 14–18",                     file:"Day18.md",action:"Quizzes + review notes"},
+  ],milestone:"Section quizzes done · week-03 md files committed"},
+
+  {label:"Week 4",badge:"Sections 19–23",color:"#a05c00",bg:"#faeedd",days:[
+    {d:"Day 19",sec:"S19",   topic:"Databases in AWS — Full Comparison",         file:"Day19.md",action:"Watch + discuss"},
+    {d:"Day 20",sec:"S20",   topic:"Data & Analytics",                           file:"Day20.md",action:"Watch + practice labs"},
+    {d:"Day 21",sec:"S21",   topic:"ML Services",                                file:"Day21.md",action:"Watch + practice labs"},
+    {d:"Day 22",sec:"S22",   topic:"Monitoring — CloudWatch, CloudTrail & Config",file:"Day22.md",action:"Watch + notes"},
+    {d:"Day 23",sec:"S23",   topic:"IAM Advanced — STS, Federation & Orgs",     file:"Day23.md",action:"Watch + summarise"},
+    {d:"Day 24",sec:"Rev",   topic:"Revise Sections 19–23 + Jon Bonso Exam 2",  file:"Day24.md",action:"Quizzes + review notes"},
+  ],milestone:"Jon Bonso Exam 2 (65 Qs) — aim 65%+"},
+
+  {label:"Week 5",badge:"Sections 24–28",color:"#b02a10",bg:"#faece7",days:[
+    {d:"Day 25",sec:"S24",   topic:"Security & Encryption — KMS, WAF & Shield",  file:"Day25.md",action:"Watch + clarify doubts"},
+    {d:"Day 26",sec:"S25",   topic:"VPC & Networking — Part 1",                  file:"Day26.md",action:"Watch + practice labs"},
+    {d:"Day 27",sec:"S25",   topic:"VPC & Networking — Part 2",                  file:"Day27.md",action:"Watch + practice labs"},
+    {d:"Day 28",sec:"S26",   topic:"Disaster Recovery & Migrations",             file:"Day28.md",action:"Watch + review"},
+    {d:"Day 29",sec:"S27–28",topic:"Other Services + Well-Architected Framework",file:"Day29.md",action:"Watch + quizzes"},
+    {d:"Day 30",sec:"Rev",   topic:"Revise Sections 24–28 + Jon Bonso Exam 3",  file:"Day30.md",action:"Quizzes + review notes"},
+  ],milestone:"Jon Bonso Exam 3 (65 Qs) — aim 70%+"},
+
+  {label:"Week 6",badge:"Sections 29–31",color:"#0a6b7c",bg:"#e0f4f8",days:[
+    {d:"Day 31",sec:"S29",   topic:"Final Sections — Part 1",                    file:"Day31.md",action:"Watch + engage labs"},
+    {d:"Day 32",sec:"S30",   topic:"Final Sections — Part 2",                    file:"Day32.md",action:"Watch + engage labs"},
+    {d:"Day 33",sec:"S31",   topic:"Final Sections — Part 3",                    file:"Day33.md",action:"Watch + engage labs"},
+    {d:"Day 34",sec:"Rev",   topic:"Full Review — All Sections",                 file:"Day34.md",action:"Practice questions"},
+    {d:"Day 35",sec:"Rev",   topic:"Weak Topics Targeted Review",                file:"Day35.md",action:"Forums + rewatch"},
+    {d:"Day 36",sec:"Exam",  topic:"Jon Bonso Exam 4 + Review",                 file:"Day36.md",action:"Identify weak areas"},
+  ],milestone:"Jon Bonso Exam 4 done · weak areas listed in GitHub notes"},
+
+  {label:"Week 7",badge:"Final Review",color:"#444",bg:"#f1efe8",days:[
+    {d:"Day 37",sec:"Rev",   topic:"Deep Dive — Weak Sections",                  file:"Day37.md",action:"Rewatch low-scoring topics"},
+    {d:"Day 38",sec:"Rev",   topic:"Deep Dive — Weak Sections Continued",        file:"Day38.md",action:"Rewatch low-scoring topics"},
+    {d:"Day 39",sec:"Exam",  topic:"Jon Bonso Exam 5",                           file:"Day39.md",action:"Aim 75%+"},
+    {d:"Day 40",sec:"Exam",  topic:"Jon Bonso Exam 6 + Review",                 file:"Day40.md",action:"Aim 75%+"},
+    {d:"Day 41",sec:"Rev",   topic:"GitHub Notes Final Read + Light Review",     file:"Day41.md",action:"Cheat sheet only"},
+  ],milestone:"Scored 75%+ on at least one mock · exam booked"},
+
+  {label:"Week 8",badge:"Exam Week",color:"#3a8c2a",bg:"#eaf3de",days:[
+    {d:"Exam W Day 1–2",sec:"Exam",topic:"Maarek's built-in practice exam",      file:null,action:"Read every explanation"},
+    {d:"Exam W Day 3–4",sec:"Exam",topic:"Targeted rewatches — weak topics",     file:null,action:"Focus rewatch"},
+    {d:"Exam W Day 5",  sec:"Rev", topic:"GitHub .md files final read",          file:null,action:"Your own words stick best"},
+    {d:"Exam W Day 6",  sec:"Rev", topic:"Light review only — rest well",        file:null,action:"No new content"},
+    {d:"Exam W Day 7",  sec:"🎯",  topic:"Exam Day — Go get it!",               file:null,action:"Read last sentence first"},
+  ],milestone:"🏆 Target: 750+ / 1000 · Pass mark: 720 · 65 Qs · 130 min"},
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────
+const CFG_KEY = 'saa_gh_cfg';
+let cfg = {};
+let state = {};
+let fileSHA = null;
+let saveTimer = null;
+
+try { cfg = JSON.parse(localStorage.getItem(CFG_KEY)) || {}; } catch(e) { cfg = {}; }
+if(cfg.user)  document.getElementById('gh-user').value  = cfg.user;
+if(cfg.repo)  document.getElementById('gh-repo').value  = cfg.repo;
+if(cfg.token) document.getElementById('gh-token').value = cfg.token;
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────
+function getKey(wi,di){ return `w${wi}_d${di}`; }
+
+function showStatus(msg,type){
+  const el=document.getElementById('conn-status');
+  el.textContent=msg; el.className='status '+type;
+}
+
+function showSaveInd(msg,isErr){
+  const el=document.getElementById('save-ind');
+  el.textContent=msg;
+  el.className='save-indicator show'+(isErr?' error':'');
+  clearTimeout(window._indTimer);
+  window._indTimer=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+function updateSummary(){
+  let total=0,done=0;
+  weeks.forEach((w,wi)=>w.days.forEach((_,di)=>{ total++; if(state[getKey(wi,di)]) done++; }));
+  document.getElementById('total-done').textContent=done;
+  document.getElementById('total-left').textContent=total-done;
+  document.getElementById('overall-pct').textContent=Math.round(done/total*100)+'%';
+}
+
+function updateWeekProgress(wi){
+  const w=weeks[wi]; let done=0;
+  w.days.forEach((_,di)=>{ if(state[getKey(wi,di)]) done++; });
+  const pct=Math.round(done/w.days.length*100);
+  const fill=document.getElementById(`fill-${wi}`);
+  const txt=document.getElementById(`pct-${wi}`);
+  if(fill) fill.style.width=pct+'%';
+  if(txt)  txt.textContent=pct+'%';
+}
+
+// ─── GITHUB API ───────────────────────────────────────────────────────────
+async function ghFetch(path,method,body){
+  const {user,repo,token}=cfg;
+  return fetch(`https://api.github.com/repos/${user}/${repo}/contents/${path}`,{
+    method,
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','Accept':'application/vnd.github+json'},
+    body:body?JSON.stringify(body):undefined
+  });
+}
+
+async function connectGitHub(){
+  cfg.user  = document.getElementById('gh-user').value.trim();
+  cfg.repo  = document.getElementById('gh-repo').value.trim();
+  cfg.token = document.getElementById('gh-token').value.trim();
+  if(!cfg.user||!cfg.repo||!cfg.token){ showStatus('Please fill all three fields','err'); return; }
+  showStatus('Connecting...','loading');
+  try{
+    const res=await ghFetch('progress.json','GET');
+    if(res.status===200){
+      const data=await res.json();
+      fileSHA=data.sha;
+      state=JSON.parse(atob(data.content.replace(/\n/g,'')));
+      showStatus('Connected — progress loaded ✅','ok');
+    } else if(res.status===404){
+      state={}; fileSHA=null;
+      showStatus('Connected — will create progress.json on first tick ✅','ok');
+    } else if(res.status===401){
+      showStatus('Invalid token — check and try again','err'); return;
+    } else {
+      showStatus('Error '+res.status+' — check username & repo','err'); return;
+    }
+    localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
+    renderTracker();
+  } catch(e){ showStatus('Connection failed — check internet & token','err'); }
+}
+
+async function saveToGitHub(){
+  if(!cfg.token) return;
+  const content=btoa(JSON.stringify(state,null,2));
+  const body={message:'tracker: update study progress',content,...(fileSHA?{sha:fileSHA}:{})};
+  try{
+    const res=await ghFetch('progress.json','PUT',body);
+    if(res.ok){
+      const data=await res.json();
+      fileSHA=data.content.sha;
+      showSaveInd('✅ Saved to GitHub',false);
+    } else { showSaveInd('Save failed — '+res.status,true); }
+  } catch(e){ showSaveInd('Save failed — no internet?',true); }
+}
+
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveToGitHub,1200);
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────
+async function openNotes(fileName, dayLabel, topic, week, section){
+  const overlay=document.getElementById('modal-overlay');
+  const content=document.getElementById('modal-content');
+  const title=document.getElementById('modal-title');
+  const meta=document.getElementById('modal-meta');
+
+  title.textContent = dayLabel+' — '+topic;
+  meta.textContent  = week+' · '+section;
+  content.innerHTML = '<div class="modal-loading">Loading notes...</div>';
+  overlay.classList.add('open');
+  document.body.style.overflow='hidden';
+
+  // Read from public GitHub raw URL — no token needed
+  const user = cfg.user || document.getElementById('gh-user').value.trim();
+  const repo  = cfg.repo  || document.getElementById('gh-repo').value.trim();
+
+  if(!user || !repo){
+    content.innerHTML=`<div class="modal-empty">
+      <p>Enter your GitHub username and repo name above first.</p>
+    </div>`;
+    return;
+  }
+
+  try{
+    const url=`https://raw.githubusercontent.com/${user}/${repo}/main/${fileName}`;
+    const res=await fetch(url);
+    if(res.status===200){
+      const md=await res.text();
+      content.innerHTML=`<div class="md-content">${marked.parse(md)}</div>`;
+    } else if(res.status===404){
+      content.innerHTML=`<div class="modal-empty">
+        <p>📝 No notes yet for this day.</p>
+        <p style="margin-top:8px;font-size:12px;color:#aaa">Fill in <strong>${fileName}</strong> and push to GitHub to see it here.</p>
+        <a href="https://github.com/${user}/${repo}/blob/main/${fileName}" target="_blank" style="margin-top:12px;display:inline-block">Edit on GitHub →</a>
+      </div>`;
+    } else {
+      content.innerHTML=`<div class="modal-empty"><p>Could not load notes. Status: ${res.status}</p></div>`;
+    }
+  } catch(e){
+    content.innerHTML=`<div class="modal-empty"><p>Failed to fetch notes. Check your internet connection.</p></div>`;
+  }
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function closeModalOnOverlay(e){
+  if(e.target===document.getElementById('modal-overlay')) closeModal();
+}
+
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+// ─── RENDER ───────────────────────────────────────────────────────────────
+function renderTracker(){
+  const container=document.getElementById('tracker');
+  container.innerHTML='';
+
+  weeks.forEach((w,wi)=>{
+    const doneCount=w.days.filter((_,di)=>state[getKey(wi,di)]).length;
+    const pct=Math.round(doneCount/w.days.length*100);
+    const isOpen=wi===0||doneCount>0;
+
+    const card=document.createElement('div');
+    card.className='week-card';
+    card.innerHTML=`
+      <div class="week-header" onclick="toggleWeek(${wi})">
+        <div class="week-left">
+          <span class="week-badge" style="background:${w.bg};color:${w.color}">${w.label}</span>
+          <span class="week-title">${w.badge}</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" id="fill-${wi}" style="width:${pct}%;background:${w.color}"></div></div>
+          <span class="progress-text" id="pct-${wi}">${pct}%</span>
+          <span class="chevron ${isOpen?'open':''}" id="chev-${wi}">⌄</span>
+        </div>
+      </div>
+      <div class="week-body ${isOpen?'open':''}" id="body-${wi}">
+        ${w.days.map((day,di)=>{
+          const key=getKey(wi,di);
+          const checked=!!state[key];
+          const hasFile=!!day.file;
+          const notesBtn=hasFile
+            ? `<button class="btn btn-notes" onclick="openNotes('${day.file}','${day.d}','${day.topic.replace(/'/g,"\\'")}','${w.label}','${day.sec}')">📄 Notes</button>`
+            : `<button class="btn btn-notes no-notes" disabled title="No notes file for exam week">📄 Notes</button>`;
+          return `
+            <div class="day-row ${checked?'done':''}" id="row-${wi}-${di}">
+              <input type="checkbox" class="cb" ${checked?'checked':''} onchange="toggle(${wi},${di},this)" aria-label="${day.d}: ${day.topic}">
+              <span class="day-label">${day.d}</span>
+              <span class="sec-tag" style="background:${w.bg};color:${w.color}">${day.sec}</span>
+              <span class="topic">${day.topic}</span>
+              <div class="action-col">${notesBtn}</div>
+            </div>`;
+        }).join('')}
+        <div class="milestone-row">✓ ${w.milestone}</div>
+      </div>`;
+    container.appendChild(card);
+  });
+
+  updateSummary();
+}
+
+// ─── INTERACTIONS ─────────────────────────────────────────────────────────
+window.toggle=function(wi,di,cb){
+  const key=getKey(wi,di); state[key]=cb.checked;
+  const row=document.getElementById(`row-${wi}-${di}`);
+  cb.checked?row.classList.add('done'):row.classList.remove('done');
+  updateWeekProgress(wi); updateSummary();
+  showSaveInd('Saving to GitHub...', false);
+  scheduleSave();
+};
+
+window.toggleWeek=function(wi){
+  document.getElementById(`body-${wi}`).classList.toggle('open');
+  document.getElementById(`chev-${wi}`).classList.toggle('open');
+};
+
+// ─── PUBLIC PROGRESS LOAD ─────────────────────────────────────────────────
+// Hardcoded public repo — anyone visiting sees your real progress
+const PUBLIC_USER = 'pavankumar-5999';
+const PUBLIC_REPO = 'aws-saa-c03-jouney';
+
+async function loadPublicProgress(){
+  try{
+    const url = `https://raw.githubusercontent.com/${PUBLIC_USER}/${PUBLIC_REPO}/main/progress.json`;
+    const res = await fetch(url);
+    if(res.ok){
+      const data = await res.json();
+      // Merge public progress into state (don't overwrite if owner is connected)
+      Object.keys(data).forEach(k => { if(!state[k]) state[k] = data[k]; });
+    }
+  } catch(e){ /* silent fail — no progress file yet */ }
+  renderTracker();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+if(cfg.token){
+  // Owner — connect to GitHub (load + save enabled)
+  connectGitHub();
+} else {
+  // Visitor — load public progress read-only, no token needed
+  loadPublicProgress();
+}
+</script>
+</body>
+</html>
